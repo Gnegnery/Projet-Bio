@@ -417,7 +417,7 @@ def removeTARich(motifs:list, p:int):
         for i in range(taille):
             if m[i] in ['A','T']:
                 count += 1
-        if count/taille < 0.7:
+        if count/taille < p:
             motifsClean.append(m)
         
     
