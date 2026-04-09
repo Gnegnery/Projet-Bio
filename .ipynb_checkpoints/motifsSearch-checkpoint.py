@@ -417,7 +417,7 @@ def removeTARich(motifs:list, p:int):
         for i in range(taille):
             if m[i] in ['A','T']:
                 count += 1
-        if count/taille < 0.7:
+        if count/taille < p:
             motifsClean.append(m)
         
     
@@ -428,6 +428,18 @@ def writeMatchesFile(path:str, matches:list):
         f.write("\n".join(matches))
         return 1
     return 0
+
+def getRatio(sequences:list):
+    nuc = ["A","T","C","G"]
+    tot = 0
+    d = {k: 0 for k in nuc}
+    for seq in sequences:
+        for n in nuc:
+            count = seq.count(n)
+            d[n] += count
+            tot += count
+
+    return d, [d[i]*100/tot for i in d], tot 
     
 
     
