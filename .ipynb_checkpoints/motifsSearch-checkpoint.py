@@ -332,22 +332,22 @@ def implantMotifsVar(motif:str, sequences:list, v:int, f1 = 1, f2 = 0.4, upper =
         motifVar = modifierMotif(motif, v, upper)
         return seq[0:index] + motifVar + seq[index:]
 
-def createKMers(k:int):
-    return ["".join(s) for s in list(product('ATGC', repeat=k))]
+from itertools import product
 
-def createFKMers(k:int, m:int, n:int, p:float):
+def createKmers(k, m, n, p, variation):
     """
-    Crée une liste de kmers complètement filtrée
-    entrée k : taille des motifs
-    entrée m : nombre de nucleotides répétés dans un motif peu complexe
-    entrée n: nombre di-nucleotides répétés dans un motif peu complexe
+    entrée k: taille de kmers
+    entrée m: taille de repetition de nucléotide
+    entrée n: taille de répétition de dinucléotide
     entrée p: proportion de nucleótides T et A
-    sortie kmers: retourne la liste de kmers filtrée
+    entrée variation: si True permettre variation d'un nucléotide
+    sortie: liste de motifs sans les motifs peu complexe
     """
-    kmers = createKMers(k)
-    kmers = removeLowComplexeHomo(kmers, m)
-    kmers = removeLowComplexeHetero(kmers, n, variation="yes")
-    return removeTARich(kmers, p)
+    
+    motifs = ["".join(s) for s in list(product('ATGC', repeat=k))]
+    motifs = removeLowComplexeHomo(motifs, m)
+    motifs = removeLowComplexeHetero(motifs, n, variation)
+    return removeTARich(motifs, p)
 
 def hamDistance(str1:str, str2:str):
     """
