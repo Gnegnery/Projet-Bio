@@ -2,6 +2,8 @@ import random
 import numpy as np
 from tqdm import tqdm
 from itertools import product
+from suffix_trees import STree
+from math import floor
 def generateRandomSequences(n:int, t:int, upper = True):
     """
     Génére plusieurs séquences nucléotidiques aléatoires 
@@ -441,5 +443,125 @@ def getRatio(sequences:list):
 
     return d, [d[i]*100/tot for i in d], tot 
     
+def constructTree(sequences):
+    """
+    construis un abre de suffixes
+    entrée sequences : liste de séquences ou une séquence concaténée
+    sortie suffix_tree : arbre de suffixes
+    """    
 
+    # Code
     
+    return STree.STree(" ".join(sequences)) if type(sequences) == list else STree.STree(sequences)
+
+def exactMatch(kmersV, stree):
+    """
+    Cherche dans le suffix tree tous les motifs possibles
+    entrée kmersV: liste de Kmers à chercher
+    entrée stree: suffix tree
+    sortie motif_occur : dictionnaire qui contient les motifs (clés) et leurs nombre d'occurrences (values).
+    """
+
+    motif_occur = {}
+    # Code
+    for m in kmersV:
+        motif_occur[m] = len(stree.find_all(m))
+    return motif_occur
+    
+def getSeeds(kmer, v):
+    """
+    entrée kmer: kmer
+    entrée v: nombre de variations dans les motifs
+    sortie seeds: liste de seeds du k-mer
+    """
+    k = len(kmer)
+    Ns = v + 1
+    Ls = int(k/Ns)
+
+    if v <= 0:
+        return [kmer]
+    seeds = []
+    for i in range(Ns-1):
+        seeds.append(kmer[i*Ls:i*Ls + Ls])
+
+    seeds.append(kmer[i*Ls + Ls:])
+    return seeds
+
+def findSeedStarPos(kmer, v, stree, verbose=False):
+    """
+    Renvoie tous les positions de départ des seeds de k-mer
+    entrée kmer : chaîne de caractères avec le motif à analyser
+    entrée v: nombre maximal de variations
+    entrée stree : sufix tree des séquénces à analyser
+    entrée verbose : si True affiche des informations sur l'exécution
+    sortie all_candidate_starts : liste de positions de départ qui donnent un match partiel
+    """
+    
+    all_candidate_starts = set()
+    k = len(kmer)
+    Ns = v + 1
+    Ls = int(k/Ns)
+    cpt = 0
+    if verbose:
+        print(f"-Init :\n\tk: {k}\n\tNs: {Ns}\n\tLs: {Ls}")
+        
+    for s in getSeeds(kmer, v):
+        finds = stree.find_all(s)
+        for c in finds:
+            all_candidate_starts.add(c - cpt*Ls)
+
+        if verbose:
+            print(f"\nseed : {s} \n\tCandidates : {finds}")
+
+        cpt += 1
+        
+    return sorted(list(all_candidate_starts))
+
+
+def findMatchesFromCandidatePositions(all_candidate_starts, sequence, target_kmer, v):
+    """
+    entrée all_candidate_starts : liste de positions de départ qui donnent un match partiel
+    entrée sequence : séquence (concaténat) dans laquelle chercher les k-mers. *e.g.* "ACGT TGGGA"
+    entrée target_kmer : k-mer cible à analyser
+    entrée v : nombre de variations 
+    sortie : liste de séquence qui donnent un match avec un nombre de variations <= v
+    """
+    
+    all_candidate_kmer = []
+    k = len(target_kmer)
+    Ns = v + 1
+    Ls = int(k/Ns)
+    for start in all_candidate_starts:
+        if start < 0:
+            continue
+                
+        candidateText = sequence[start:start+k]
+        if " " in candidateText:
+            continue
+        if ms.hamDistance(target_kmer, candidateText) <= v:
+            all_candidate_kmer.append(candidateText)
+            
+    return all_candidate_kmer
+
+def inexactMatch(kmersV, sequences, stree, v):
+    """
+    cherche de motifs variables dans un suffix tree
+    entrée kmersV : liste de motifs à chercher
+    entrée sequences : liste ou concaténat de séquences dans laquelle chercher les motifs. *e.g.* "ACGT TGGGA" ou ["ACGT", "TGGGA"]
+    entrée stree : suffix tree pré-construit à partir des séquences 
+    entrée v : nombre maximal de variations dans les motifs
+    sortie motif_occur : dictionnaire clés = motif ; value = nombre d'occurrences
+    sortie motif_seq : dictionnaire clés = motif ; value = liste de matches pour le motif
+    """
+
+    motifs_occur = {}
+    motifs_matches = {}
+    sequences = " ".join(sequences) if type(sequences) == list else sequences
+
+    for kmer in kmersV:
+        all_candidate_start = findSeedStarPos(kmer, v, stree, verbose=False)
+        all_cand = findMatchesFromCandidatePositions(all_candidate_start, sequences, kmer, v)
+        motifs_occur[kmer] = len(all_cand)
+        motifs_matches[kmer] = all_cand
+
+    return motifs_occur, motifs_matches
